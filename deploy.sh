@@ -5,8 +5,8 @@
 # $3 - folder and service name
 # $4 - key.pem file
 
-SYSTEMD=1
-UPSTART=2
+SYSTEMD="systemd"
+UPSTART="upstart"
 
 date=`date +%Y%m%d%H%M%S`
 binary=$1
@@ -15,24 +15,35 @@ service=$3
 folder=$3
 key=$4
 supervisor=$5
+branch=$6
 
-deploy_string="cp -r ${folder} ${folder}-${date} && mv ${binary} ${folder}/"
+deploy_string="cp -r $folder $folder-$date && mv $binary $folder/"
 
-if [$supervisor -eq SYSTEMD]
-	deploy_string="$base_deploy_string && sudo systemctl restart ${service}.service"
-elif [$supervisor -eq UPSTART]
+if [ "$supervisor" == "$SYSTEMD" ]
 then
-	deploy_string="$base_deploy_string && sudo initctl restart ${service}"
+	deploy_string="$deploy_string && sudo systemctl restart $service.service"
+elif [ "$supervisor" == "$UPSTART" ]
+then
+	deploy_string="$deploy_string && sudo initctl restart $service"
 else
 	echo "====== ERROR UNKNOWN SUPERVISOR ======"
 	exit 1
 fi
 
-cd ${GOPATH}/src/${binary}
+cd $GOPATH/src/$binary
 git stash
-git checkout master
-env GOOS=linux GOARCH=amd64 go build -v ${binary}
-scp -i ${key} ${binary} ubuntu@${ip}:~
-ssh -i ${key} ubuntu@${ip} ${deploy_string}
-rm ${binary}
+
+if [ "$branch" ]
+then
+git checkout $branch
+fi
+
+env GOOS=linux GOARCH=amd64 go build -v $binary
+scp -i $key $binary ubuntu@$ip:~
+
+echo "======= START IMPLANTING ======"
+ssh -i $key ubuntu@$ip $deploy_string
+echo "======= END IMPLANTING ======"
+
+rm $binary
 git stash pop
