@@ -9,6 +9,7 @@ SYSTEMD="systemd"
 UPSTART="upstart"
 
 date=`date +%Y%m%d%H%M%S`
+sha1=`git rev-parse HEAD`
 binary=$1
 ip=$2
 service=$3
@@ -21,10 +22,10 @@ deploy_string="cp -r $folder $folder-$date && mv $binary $folder/"
 
 if [ "$supervisor" == "$SYSTEMD" ]
 then
-	deploy_string="$deploy_string && sudo systemctl restart $service.service"
+	deploy_string="$deploy_string && sudo systemctl restart $service.service && echo $sha1 > $folder/version.txt"
 elif [ "$supervisor" == "$UPSTART" ]
 then
-	deploy_string="$deploy_string && sudo initctl restart $service"
+	deploy_string="$deploy_string && sudo initctl restart $service && echo $sha1 > $folder/version.txt"
 else
 	echo "====== ERROR UNKNOWN SUPERVISOR ======"
 	exit 1
