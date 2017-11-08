@@ -1,9 +1,10 @@
 #!/bin/bash
 
 # $1 - binary name
-# $2 - server ip
+# $2 - host name
 # $3 - folder and service name
-# $4 - key.pem file
+# $4 - supervisor name
+# $5 - branch name
 
 SYSTEMD="systemd"
 UPSTART="upstart"
@@ -11,12 +12,11 @@ UPSTART="upstart"
 date=`date +%Y%m%d%H%M%S`
 sha1=`git rev-parse HEAD`
 binary=$1
-ip=$2
+host=$2
 service=$3
 folder=$3
-key=$4
-supervisor=$5
-branch=$6
+supervisor=$4
+branch=$5
 
 deploy_string="cp -r $folder $folder-$date && mv $binary $folder/"
 
@@ -40,10 +40,10 @@ git checkout $branch
 fi
 
 env GOOS=linux GOARCH=amd64 go build -v $binary
-scp -i $key $binary ubuntu@$ip:~
+scp $binary $host:~
 
 echo "======= START IMPLANTING ======"
-ssh -i $key ubuntu@$ip $deploy_string
+ssh $host $deploy_string
 echo "======= END IMPLANTING ======"
 
 rm $binary
